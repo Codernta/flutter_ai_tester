@@ -16,7 +16,7 @@ Add `flutter_ai_tester` under `dev_dependencies` in your `pubspec.yaml`:
 
 ```yaml
 dev_dependencies:
-  flutter_ai_tester: ^0.1.0
+  flutter_ai_tester: ^0.1.1
 ```
 
 Or run:
@@ -136,8 +136,9 @@ expectWithinBudget(tracker, budget);
 expect(tracker, isWithinBudget(budget));
 ```
 
-## Running the Package Tests
+## Running the Package Tests & Example
 
 ```sh
 flutter test
+flutter test example/main.dart
 ```

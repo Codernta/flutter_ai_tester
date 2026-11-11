@@ -1,3 +1,8 @@
+## 0.1.1
+
+* Added runnable `example/main.dart` demonstrating Generative UI layout testing, semantic assertions, and AI budget enforcement.
+* Updated package documentation with example execution instructions.
+
 ## 0.1.0
 
 * Initial release of `flutter_ai_tester`:
