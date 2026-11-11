@@ -1,0 +1,27 @@
+name: flutter_ai_tester
+description: >-
+  Regression, integration, and widget testing utilities for Generative UI
+  layouts, LLM prompt variations, semantic assertions, and AI cost, token,
+  and latency budgets.
+version: 0.1.0
+homepage: https://github.com/Codernta/flutter_ai_tester
+repository: https://github.com/Codernta/flutter_ai_tester
+issue_tracker: https://github.com/Codernta/flutter_ai_tester/issues
+
+environment:
+  sdk: ^3.8.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  collection: ^1.18.0
+  flutter:
+    sdk: flutter
+  flutter_test:
+    sdk: flutter
+  http: ^1.2.0
+  integration_test:
+    sdk: flutter
+  meta: ^1.12.0
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
