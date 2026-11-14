@@ -9,7 +9,14 @@ class AiTokenPricing {
   const AiTokenPricing({
     required this.promptCostPerMillionTokensUsd,
     required this.completionCostPerMillionTokensUsd,
-  });
+  }) : assert(
+         promptCostPerMillionTokensUsd >= 0.0,
+         'promptCostPerMillionTokensUsd must be non-negative.',
+       ),
+       assert(
+         completionCostPerMillionTokensUsd >= 0.0,
+         'completionCostPerMillionTokensUsd must be non-negative.',
+       );
 
   /// USD cost per 1,000,000 input/prompt tokens.
   final double promptCostPerMillionTokensUsd;
@@ -25,6 +32,24 @@ class AiTokenPricing {
   }) {
     if (promptTokens < 0 || completionTokens < 0) {
       throw ArgumentError('Token counts must be non-negative.');
+    }
+    if (promptCostPerMillionTokensUsd.isNaN ||
+        promptCostPerMillionTokensUsd.isInfinite ||
+        promptCostPerMillionTokensUsd < 0.0) {
+      throw ArgumentError.value(
+        promptCostPerMillionTokensUsd,
+        'promptCostPerMillionTokensUsd',
+        'Prompt cost per million tokens must be a non-negative finite number.',
+      );
+    }
+    if (completionCostPerMillionTokensUsd.isNaN ||
+        completionCostPerMillionTokensUsd.isInfinite ||
+        completionCostPerMillionTokensUsd < 0.0) {
+      throw ArgumentError.value(
+        completionCostPerMillionTokensUsd,
+        'completionCostPerMillionTokensUsd',
+        'Completion cost per million tokens must be a non-negative finite number.',
+      );
     }
     return ((promptTokens * promptCostPerMillionTokensUsd) +
             (completionTokens * completionCostPerMillionTokensUsd)) /
@@ -98,7 +123,8 @@ class PromptBudget {
         'maxTotalTokens must be non-negative.',
       );
     }
-    if (maxCostUsd != null && (maxCostUsd!.isNaN || maxCostUsd! < 0.0)) {
+    if (maxCostUsd != null &&
+        (maxCostUsd!.isNaN || maxCostUsd!.isInfinite || maxCostUsd! < 0.0)) {
       throw ArgumentError.value(
         maxCostUsd,
         'maxCostUsd',
@@ -130,7 +156,9 @@ class AiMetricSample {
     this.completionTokens = 0,
     this.costUsd = 0.0,
     this.label,
-  });
+  }) : assert(promptTokens >= 0, 'promptTokens must be non-negative.'),
+       assert(completionTokens >= 0, 'completionTokens must be non-negative.'),
+       assert(costUsd >= 0.0, 'costUsd must be non-negative.');
 
   /// Observed wall-clock latency for this sample.
   final Duration latency;
@@ -446,7 +474,7 @@ class AiTestMetrics {
         'completionTokens must be non-negative.',
       );
     }
-    if (costUsd.isNaN || costUsd < 0.0) {
+    if (costUsd.isNaN || costUsd.isInfinite || costUsd < 0.0) {
       throw ArgumentError.value(
         costUsd,
         'costUsd',
@@ -737,6 +765,12 @@ String _formatDuration(Duration duration) {
 }
 
 String _formatUsd(double amount) {
+  if (amount.isNaN) {
+    return r'$NaN';
+  }
+  if (amount.isInfinite) {
+    return amount.isNegative ? r'-$Infinity' : r'$Infinity';
+  }
   if (amount == 0.0) {
     return r'$0.0000';
   }

@@ -16,7 +16,7 @@ Add `flutter_ai_tester` under `dev_dependencies` in your `pubspec.yaml`:
 
 ```yaml
 dev_dependencies:
-  flutter_ai_tester: ^0.1.1
+  flutter_ai_tester: ^0.1.2
 ```
 
 Or run:
@@ -135,6 +135,15 @@ expectWithinBudget(tracker, budget);
 // Or using the matcher syntax:
 expect(tracker, isWithinBudget(budget));
 ```
+
+## Security & Robustness
+
+`flutter_ai_tester` includes built-in defenses against attacks and test pipeline vulnerabilities:
+- **Prompt Injection Defense**: Evaluator prompts strictly isolate untrusted LLM outputs with XML boundary delimiters and explicit system instructions to ignore adversarial overrides.
+- **SSRF & Header Injection Protection**: Enforces strict URL scheme checking (`http`/`https`) and CRLF header validation in `HttpAiSemanticEvaluator`.
+- **Sensitive Credential Redaction**: Automatically masks sensitive query keys (e.g. `key`, `api_key`, `token`) and userInfo in HTTP diagnostics, metadata, and exceptions.
+- **Payload & Diagnostic Sanitization**: Automatically redacts sensitive fields (passwords, tokens, keys) and truncates huge payloads in `LayoutFailureEntry` logs to prevent credential leakage and CI log exhaustion.
+- **Budget Bypass & Float Safety**: Validates pricing bounds and prevents infinite/NaN values from bypassing token and cost thresholds.
 
 ## Running the Package Tests & Example
 

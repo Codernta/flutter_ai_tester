@@ -100,11 +100,12 @@ class LayoutFailureEntry {
 
   /// Formats this entry, including pretty-printed JSON of [payload].
   String format() {
+    final Map<String, dynamic> safePayload = _sanitizePayload(payload);
     final encoder = JsonEncoder.withIndent(
       '  ',
       (Object? nonEncodable) => nonEncodable.toString(),
     );
-    final String prettyPayload = encoder.convert(payload);
+    final String prettyPayload = encoder.convert(safePayload);
 
     final buffer = StringBuffer();
     final String viewportLabel = viewport == null
@@ -139,11 +140,71 @@ class LayoutFailureEntry {
     }
 
     buffer.writeln('  Failing JSON Payload:');
-    for (final String line in prettyPayload.split('\n')) {
-      buffer.writeln('    $line');
+    final List<String> lines = prettyPayload.split('\n');
+    const int maxPayloadLines = 100;
+    if (lines.length > maxPayloadLines) {
+      for (final String line in lines.take(maxPayloadLines)) {
+        buffer.writeln('    $line');
+      }
+      buffer.writeln(
+        '    ... [truncated ${lines.length - maxPayloadLines} line(s)]',
+      );
+    } else {
+      for (final String line in lines) {
+        buffer.writeln('    $line');
+      }
     }
 
     return buffer.toString().trimRight();
+  }
+
+  static final Set<String> _sensitiveKeyPatterns = <String>{
+    'password',
+    'passwd',
+    'secret',
+    'apikey',
+    'token',
+    'accesstoken',
+    'refreshtoken',
+    'authorization',
+    'auth',
+    'bearer',
+    'privatekey',
+    'creditcard',
+    'cvv',
+    'ssn',
+  };
+
+  static Map<String, dynamic> _sanitizePayload(Map<String, dynamic> input) {
+    final sanitized = <String, dynamic>{};
+    for (final MapEntry<String, dynamic> entry in input.entries) {
+      final String normalizedKey = entry.key
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9]'), '');
+      final bool isSensitive =
+          _sensitiveKeyPatterns.contains(normalizedKey) ||
+          _sensitiveKeyPatterns.any(
+            (pattern) => normalizedKey.contains(pattern),
+          );
+
+      if (isSensitive) {
+        sanitized[entry.key] = '[REDACTED]';
+      } else if (entry.value is Map<String, dynamic>) {
+        sanitized[entry.key] = _sanitizePayload(
+          entry.value as Map<String, dynamic>,
+        );
+      } else if (entry.value is List) {
+        sanitized[entry.key] = (entry.value as List).map((dynamic item) {
+          if (item is Map<String, dynamic>) {
+            return _sanitizePayload(item);
+          }
+          return item;
+        }).toList();
+      } else {
+        sanitized[entry.key] = entry.value;
+      }
+    }
+    return sanitized;
   }
 
   @override
@@ -289,11 +350,32 @@ class LayoutAsserter {
         'At least one JSON payload must be provided to testGenerativeLayout.',
       );
     }
-    if (viewports != null && viewports.isEmpty) {
+    if (viewports != null) {
+      if (viewports.isEmpty) {
+        throw ArgumentError.value(
+          viewports,
+          'viewports',
+          'If provided, viewports must contain at least one Size.',
+        );
+      }
+      for (final Size vp in viewports) {
+        if (vp.width <= 0 ||
+            vp.height <= 0 ||
+            !vp.width.isFinite ||
+            !vp.height.isFinite) {
+          throw ArgumentError.value(
+            vp,
+            'viewports',
+            'Viewport dimensions must be positive finite numbers (got ${vp.width} x ${vp.height}).',
+          );
+        }
+      }
+    }
+    if (pumpDuration != null && pumpDuration.isNegative) {
       throw ArgumentError.value(
-        viewports,
-        'viewports',
-        'If provided, viewports must contain at least one Size.',
+        pumpDuration,
+        'pumpDuration',
+        'pumpDuration must not be negative.',
       );
     }
 
@@ -461,7 +543,12 @@ class LayoutAsserter {
         return;
       }
 
-      final String shortDescription = node.toStringShort();
+      String shortDescription;
+      try {
+        shortDescription = node.toStringShort();
+      } catch (_) {
+        shortDescription = node.runtimeType.toString();
+      }
       final bool isOverflowing = shortDescription.contains('OVERFLOWING');
       final bool isErrorBox = node is RenderErrorBox;
 
